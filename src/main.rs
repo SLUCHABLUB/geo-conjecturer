@@ -1,10 +1,13 @@
 mod html;
 mod player;
+mod state;
 
+use crate::state::AppReference;
 use axum::Router;
 use axum::debug_handler;
 use axum::response::Redirect;
 use axum::routing::get;
+use axum::routing::post;
 use axum::serve;
 use clap::Parser;
 use dotenv::dotenv;
@@ -34,16 +37,19 @@ async fn main() {
 
     let arguments = make_static(Arguments::parse());
 
-    let app = Router::new()
+    let app = AppReference::from_arguments(arguments);
+
+    let router = Router::new()
         .route("/", get(root_page))
         .route("/player", get(player::page))
-        .with_state(arguments);
+        .route("/player/signup", post(player::signup))
+        .with_state(app);
 
     let listener = TcpListener::bind((Ipv4Addr::UNSPECIFIED, arguments.port))
         .await
         .unwrap();
 
-    serve(listener, app).await.unwrap();
+    serve(listener, router).await.unwrap();
 }
 
 #[debug_handler]
