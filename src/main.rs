@@ -1,3 +1,4 @@
+mod host;
 mod html;
 mod player;
 mod state;
@@ -23,24 +24,26 @@ struct Arguments {
     #[arg(short = 'z', long, env = "ZOOM")]
     zoom: u8,
 
+    #[arg(long, env = "HOST_PASSWORD_HASH")]
+    host_password_hash: u64,
+
     #[arg(short, long, env = "PORT", default_value = "1337")]
     port: u16,
-}
-
-fn make_static<T>(value: T) -> &'static T {
-    Box::leak(Box::new(value))
 }
 
 #[tokio::main]
 async fn main() {
     let _ = dotenv();
 
-    let arguments = make_static(Arguments::parse());
+    let arguments = Arguments::parse();
 
-    let app = AppReference::from_arguments(arguments);
+    let app = AppReference::from(&arguments);
 
     let router = Router::new()
         .route("/", get(root_page))
+        .route("/host", get(host::page))
+        .route("/host/login", get(host::login_page))
+        .route("/host/login", post(host::login))
         .route("/player", get(player::page))
         .route("/player/signup", post(player::signup))
         .with_state(app);
